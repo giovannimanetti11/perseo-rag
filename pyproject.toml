@@ -1,0 +1,59 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "perseo-rag"
+version = "0.1.0"
+description = "Retrieval service for grounded question answering over versioned document collections."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [
+    { name = "Giovanni Manetti" },
+]
+dependencies = [
+    "fastapi>=0.141.1,<0.142",
+    "pgvector>=0.5,<0.6",
+    "psycopg[binary]>=3.3.6,<4",
+    "pydantic-settings>=2.15,<3",
+    "sqlalchemy>=2.0.54,<2.1",
+    "uvicorn[standard]>=0.53,<0.54",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "mypy>=2.3.1,<3",
+    "pytest>=9.1.1,<10",
+    "pytest-cov>=7.1,<8",
+    "ruff>=0.16.8,<0.17",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/perseo_rag"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["perseo_rag"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85

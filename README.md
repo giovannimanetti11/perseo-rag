@@ -1,5 +1,6 @@
 # Perseo RAG
 
+[![CI](https://github.com/giovannimanetti11/perseo-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/giovannimanetti11/perseo-rag/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/giovannimanetti11/perseo-rag?style=flat-square)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/giovannimanetti11/perseo-rag?style=flat-square)](https://github.com/giovannimanetti11/perseo-rag/commits/main)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
@@ -141,11 +142,43 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting and repository securi
 | Vector search | pgvector |
 | Migrations | Alembic |
 | Validation | Pydantic |
+| Dependency management | uv |
 | Test suite | pytest |
 | Linting / formatting | Ruff |
 | Type checking | mypy |
 
 These choices describe the public core. Provider-specific integrations remain replaceable.
+
+## Development
+
+Requirements:
+
+- Python 3.12 or newer;
+- [uv](https://docs.astral.sh/uv/);
+- Docker with Compose.
+
+Create the local environment and start PostgreSQL:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+uv sync --all-groups
+```
+
+Run the service locally:
+
+```bash
+uv run uvicorn perseo_rag.api:app --reload
+```
+
+Run the same quality checks enforced by CI:
+
+```bash
+uv run ruff format --check .
+uv run ruff check .
+uv run mypy src
+uv run pytest --cov=perseo_rag --cov-report=term-missing
+```
 
 ## Development roadmap
 
