@@ -10,7 +10,7 @@
 
 Perseo RAG is a retrieval service for grounded question answering over versioned document collections.
 
-The project is built around a small set of constraints: tenant isolation, traceable answers, deterministic ingestion, provider-independent generation, and a storage model that remains inspectable without depending on a proprietary vector database.
+The project is built around a small set of constraints: scope isolation, traceable answers, deterministic ingestion, provider-independent generation, and a storage model that remains inspectable without depending on a proprietary vector database.
 
 > The repository is in active development. Public interfaces may change until the first tagged release.
 
@@ -20,17 +20,17 @@ Perseo RAG is intended to provide a reusable retrieval layer for applications th
 
 - ingest structured or semi-structured documents;
 - preserve document history instead of overwriting source material;
-- retrieve evidence with tenant boundaries applied before ranking;
+- retrieve evidence with scope boundaries applied before ranking;
 - combine semantic and lexical retrieval;
 - return answers with source attribution;
 - abstain when the available evidence is insufficient.
 
-The core is deliberately application-agnostic. Product-specific adapters, deployment topology and environment-specific configuration are outside the scope of this repository.
+The core is deliberately application-agnostic. A scope represents the authorization boundary chosen by the integrating application, such as a workspace, organization or user. Product-specific adapters, deployment topology and environment-specific configuration are outside the scope of this repository.
 
 ## Design principles
 
 **Isolation first**  
-Tenant boundaries are part of the data model and retrieval path, not an application-level convention.
+Scope boundaries are part of the data model and retrieval path, not an application-level convention.
 
 **Evidence over fluent output**  
 Generation is downstream from retrieval. Answers are expected to remain grounded in retrieved material and expose their sources.
@@ -85,7 +85,7 @@ Embeddings     Text indexing
 The storage hierarchy is intentionally explicit:
 
 ```text
-Tenant
+Scope
 └── Collection
     └── Document
         └── Version
@@ -101,7 +101,7 @@ The initial retrieval strategy combines two independent candidate sources:
 1. semantic similarity over vector representations;
 2. PostgreSQL full-text search over normalized chunk content.
 
-Candidate lists are fused before optional reranking. Tenant filtering is applied before candidate selection so documents from another tenant never enter the ranking set.
+Candidate lists are fused before optional reranking. Scope filtering is applied before candidate selection so documents from another scope never enter the ranking set.
 
 The exact ranking strategy is treated as an implementation detail and will be evaluated against a repeatable test corpus rather than tuned around individual queries.
 
@@ -119,13 +119,13 @@ Security-sensitive behavior is part of the design rather than a deployment after
 
 The baseline includes:
 
-- tenant-scoped retrieval;
+- scope-scoped retrieval;
 - PostgreSQL row-level security as a second isolation boundary;
 - bounded input and output sizes;
 - no arbitrary URL fetching in the core;
 - untrusted treatment of retrieved document content;
 - logs that exclude raw document bodies and credentials;
-- dedicated cross-tenant leakage tests;
+- dedicated cross-scope leakage tests;
 - no executable tools exposed to the generation layer.
 
 Operational addresses, credentials, private integration details and production deployment configuration do not belong in this repository.
@@ -183,7 +183,7 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 ## Development roadmap
 
 - [ ] Project bootstrap and quality gates
-- [ ] Tenant, collection and document domain model
+- [ ] Scope, collection and document domain model
 - [ ] Versioned ingestion pipeline
 - [ ] Vector and full-text indexing
 - [ ] Hybrid retrieval
@@ -200,7 +200,7 @@ This repository contains the reusable core only.
 It intentionally does **not** contain:
 
 - production credentials or secrets;
-- private customer or tenant data;
+- private customer data;
 - deployment-specific hostnames, ports or network topology;
 - application-specific source adapters;
 - production infrastructure manifests;

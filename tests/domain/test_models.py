@@ -3,11 +3,11 @@ from uuid import uuid4
 
 import pytest
 
-from perseo_rag.domain import Tenant
+from perseo_rag.domain import Scope
 
 
 def test_domain_entities_are_immutable() -> None:
-    tenant = Tenant(id=uuid4(), slug="acme", name="Acme")
+    scope = Scope(id=uuid4(), slug="acme", name="Acme")
 
     with pytest.raises(FrozenInstanceError):
-        tenant.name = "Changed"  # type: ignore[misc]
+        scope.name = "Changed"  # type: ignore[misc]
