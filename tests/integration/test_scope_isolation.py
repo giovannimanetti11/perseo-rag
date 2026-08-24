@@ -45,32 +45,42 @@ def _seed_scope(
     content = f"{label} private scan result"
 
     with scoped_session(session_factory, ScopeContext(scope_id)) as session:
-        session.add_all(
-            [
-                ScopeRecord(id=scope_id, slug=f"{label}-{scope_id.hex}", name=label),
-                CollectionRecord(id=collection_id, scope_id=scope_id, name="Default"),
-                DocumentRecord(
-                    id=document_id,
-                    scope_id=scope_id,
-                    collection_id=collection_id,
-                    source_type="web",
-                    source_ref=source_ref,
-                ),
-                DocumentVersionRecord(
-                    id=version_id,
-                    scope_id=scope_id,
-                    document_id=document_id,
-                    content_hash=uuid4().hex,
-                    metadata_json={"kind": "scan"},
-                ),
-                ChunkRecord(
-                    id=uuid4(),
-                    scope_id=scope_id,
-                    document_version_id=version_id,
-                    position=0,
-                    content=content,
-                ),
-            ]
+        session.add(ScopeRecord(id=scope_id, slug=f"{label}-{scope_id.hex}", name=label))
+        session.flush()
+
+        session.add(CollectionRecord(id=collection_id, scope_id=scope_id, name="Default"))
+        session.flush()
+
+        session.add(
+            DocumentRecord(
+                id=document_id,
+                scope_id=scope_id,
+                collection_id=collection_id,
+                source_type="web",
+                source_ref=source_ref,
+            )
+        )
+        session.flush()
+
+        session.add(
+            DocumentVersionRecord(
+                id=version_id,
+                scope_id=scope_id,
+                document_id=document_id,
+                content_hash=uuid4().hex,
+                metadata_json={"kind": "scan"},
+            )
+        )
+        session.flush()
+
+        session.add(
+            ChunkRecord(
+                id=uuid4(),
+                scope_id=scope_id,
+                document_version_id=version_id,
+                position=0,
+                content=content,
+            )
         )
 
     return SeededScope(scope_id=scope_id, collection_id=collection_id, content=content)
