@@ -20,8 +20,7 @@ def _enable_scope_policy(table: str, column: str) -> None:
     op.execute(f'ALTER TABLE "{table}" ENABLE ROW LEVEL SECURITY')
     op.execute(f'ALTER TABLE "{table}" FORCE ROW LEVEL SECURITY')
     op.execute(
-        f'CREATE POLICY scope_isolation ON "{table}" '
-        f"USING ({predicate}) WITH CHECK ({predicate})"
+        f'CREATE POLICY scope_isolation ON "{table}" USING ({predicate}) WITH CHECK ({predicate})'
     )
 
 
