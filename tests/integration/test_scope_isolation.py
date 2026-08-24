@@ -112,14 +112,16 @@ def test_cross_scope_parent_links_are_rejected(
     first = _seed_scope(session_factory, "parent-first", "https://same.example/")
     second = _seed_scope(session_factory, "parent-second", "https://same.example/")
 
-    with pytest.raises(IntegrityError):
-        with scoped_session(session_factory, ScopeContext(first.scope_id)) as session:
-            session.add(
-                DocumentRecord(
-                    id=uuid4(),
-                    scope_id=first.scope_id,
-                    collection_id=second.collection_id,
-                    source_type="web",
-                    source_ref="https://same.example/cross-scope",
-                )
+    with (
+        pytest.raises(IntegrityError),
+        scoped_session(session_factory, ScopeContext(first.scope_id)) as session,
+    ):
+        session.add(
+            DocumentRecord(
+                id=uuid4(),
+                scope_id=first.scope_id,
+                collection_id=second.collection_id,
+                source_type="web",
+                source_ref="https://same.example/cross-scope",
             )
+        )
