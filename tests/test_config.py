@@ -7,6 +7,7 @@ def test_settings_use_safe_defaults() -> None:
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
     assert settings.expose_api_docs is False
+    assert settings.database_url != settings.migration_database_url
 
 
 def test_settings_read_prefixed_environment(monkeypatch) -> None:

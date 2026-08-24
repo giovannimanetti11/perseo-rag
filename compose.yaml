@@ -13,6 +13,7 @@ services:
       timeout: 5s
       retries: 10
     volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/001-perseo.sql:ro
       - postgres_data:/var/lib/postgresql/data
 
 volumes:

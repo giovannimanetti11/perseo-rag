@@ -15,7 +15,10 @@ class Settings(BaseSettings):
     )
 
     environment: Environment = "development"
-    database_url: str = "postgresql+psycopg://perseo:perseo@localhost:5432/perseo_rag"
+    database_url: str = (
+        "postgresql+psycopg://perseo_app:perseo_app@localhost:5432/perseo_rag"
+    )
+    migration_database_url: str = "postgresql+psycopg://perseo:perseo@localhost:5432/perseo_rag"
     log_level: LogLevel = "INFO"
     expose_api_docs: bool = False
 

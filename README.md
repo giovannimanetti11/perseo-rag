@@ -119,7 +119,7 @@ Security-sensitive behavior is part of the design rather than a deployment after
 
 The baseline includes:
 
-- scope-scoped retrieval;
+- scope-constrained retrieval;
 - PostgreSQL row-level security as a second isolation boundary;
 - bounded input and output sizes;
 - no arbitrary URL fetching in the core;
@@ -157,13 +157,16 @@ Requirements:
 - [uv](https://docs.astral.sh/uv/);
 - Docker with Compose.
 
-Create the local environment and start PostgreSQL:
+Create the local environment, start PostgreSQL and apply migrations:
 
 ```bash
 cp .env.example .env
-docker compose up -d postgres
 uv sync --all-groups
+docker compose up -d --wait postgres
+uv run alembic upgrade head
 ```
+
+The development setup uses separate database identities for schema migrations and application traffic. The application identity is non-privileged and does not bypass row-level security.
 
 Run the service locally:
 
@@ -182,15 +185,15 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 
 ## Development roadmap
 
-- [ ] Project bootstrap and quality gates
-- [ ] Scope, collection and document domain model
+- [x] Project bootstrap and quality gates
+- [x] Scope, collection and document domain model
 - [ ] Versioned ingestion pipeline
 - [ ] Vector and full-text indexing
 - [ ] Hybrid retrieval
 - [ ] Grounded generation and citations
-- [ ] Row-level security policies
+- [x] Row-level security policies
 - [ ] Retrieval evaluation suite
-- [ ] Cross-tenant security tests
+- [x] Cross-scope security tests
 - [ ] First tagged release
 
 ## Repository boundaries
