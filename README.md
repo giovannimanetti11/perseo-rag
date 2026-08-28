@@ -94,6 +94,37 @@ Scope
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the architectural boundaries, data model and security invariants.
 
+## Ingestion
+
+Ingestion accepts normalized application data without embedding authorization information in the payload. The active scope is supplied separately from authenticated application context.
+
+A document is identified by its collection, source type and source reference. Each source state is normalized and fingerprinted from its content and metadata:
+
+```text
+Document input
+      │
+      ▼
+Normalization
+      │
+      ▼
+Deterministic fingerprint
+      │
+      ▼
+Document upsert
+      │
+      ▼
+New state?
+  ├── no  ──► existing version
+  └── yes ──► new immutable version
+                  │
+                  ▼
+               chunks
+```
+
+Equivalent content produces the same fingerprint regardless of line-ending differences, trailing whitespace or metadata key order. Re-ingesting the same state is idempotent and does not duplicate versions or chunks.
+
+`source_ref` is intentionally opaque to the core. URL canonicalization or other source-specific identity rules belong in source adapters.
+
 ## Retrieval
 
 The initial retrieval strategy combines two independent candidate sources:
@@ -187,7 +218,7 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 
 - [x] Project bootstrap and quality gates
 - [x] Scope, collection and document domain model
-- [ ] Versioned ingestion pipeline
+- [x] Versioned ingestion pipeline
 - [ ] Vector and full-text indexing
 - [ ] Hybrid retrieval
 - [ ] Grounded generation and citations
