@@ -75,7 +75,7 @@ class SqlAlchemyIngestionRepository:
                 scope_id=self._scope_id,
                 document_id=document_id,
                 content_hash=document.fingerprint,
-                metadata=document.metadata,
+                metadata_json=document.metadata,
             )
             .on_conflict_do_nothing(constraint="uq_document_versions_content")
             .returning(DocumentVersionRecord.id)
