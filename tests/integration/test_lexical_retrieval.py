@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,7 +22,7 @@ def session_factory() -> sessionmaker[Session]:
 def _create_scope(
     session_factory: sessionmaker[Session],
     label: str,
-) -> tuple[ScopeContext, object]:
+) -> tuple[ScopeContext, UUID]:
     scope = ScopeContext(uuid4())
     collection_id = uuid4()
 
