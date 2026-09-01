@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, literal_column, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from perseo_rag.retrieval.models import RetrievalHit
@@ -36,7 +36,10 @@ class LexicalRetriever:
             raise ValueError(f"limit must be between 1 and {self._max_results}")
 
         with scoped_session(self._session_factory, scope) as session:
-            tsquery = func.websearch_to_tsquery("simple", normalized_query)
+            tsquery = func.websearch_to_tsquery(
+                literal_column("'simple'::regconfig"),
+                normalized_query,
+            )
             score = func.ts_rank_cd(ChunkRecord.search_vector, tsquery).label("score")
 
             statement = (
