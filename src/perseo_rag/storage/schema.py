@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
     MetaData,
     String,
     Text,
@@ -127,6 +128,7 @@ class ChunkRecord(Base):
             name="fk_chunks_scope_document_version",
             ondelete="CASCADE",
         ),
+        UniqueConstraint("scope_id", "id", name="uq_chunks_scope_id_id"),
         UniqueConstraint(
             "scope_id",
             "document_version_id",
@@ -142,8 +144,37 @@ class ChunkRecord(Base):
     document_version_id: Mapped[UUID] = mapped_column(nullable=False)
     position: Mapped[int] = mapped_column(nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(), nullable=True)
     search_vector: Mapped[str] = mapped_column(
         TSVECTOR,
         Computed("to_tsvector('simple'::regconfig, content)", persisted=True),
     )
+
+
+class ChunkEmbeddingRecord(Base):
+    __tablename__ = "chunk_embeddings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["scope_id", "chunk_id"],
+            ["chunks.scope_id", "chunks.id"],
+            name="fk_chunk_embeddings_scope_chunk",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint(
+            "scope_id",
+            "chunk_id",
+            "provider_key",
+            name="uq_chunk_embeddings_provider",
+        ),
+        Index(
+            "ix_chunk_embeddings_scope_provider",
+            "scope_id",
+            "provider_key",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    scope_id: Mapped[UUID] = mapped_column(nullable=False)
+    chunk_id: Mapped[UUID] = mapped_column(nullable=False)
+    provider_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    dimensions: Mapped[int] = mapped_column(Integer, nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(Vector(), nullable=False)
