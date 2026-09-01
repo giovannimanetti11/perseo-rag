@@ -15,15 +15,12 @@ from perseo_rag.storage.schema import ChunkEmbeddingRecord, CollectionRecord, Sc
 
 
 @dataclass(frozen=True, slots=True)
-class TestProvider:
+class FixtureProvider:
     key: str
     dimensions: int = 3
 
     def embed(self, texts: Sequence[str]) -> Sequence[Sequence[float]]:
-        return [
-            [float(len(text)), float(text.count(" ")), 1.0]
-            for text in texts
-        ]
+        return [[float(len(text)), float(text.count(" ")), 1.0] for text in texts]
 
 
 @pytest.fixture(scope="module")
@@ -64,7 +61,7 @@ def test_embeddings_are_indexed_once_per_provider(
 ) -> None:
     scope = _create_indexable_scope(session_factory, "embedding-once")
     service = EmbeddingService(session_factory, batch_size=1)
-    provider = TestProvider("fixture-v1")
+    provider = FixtureProvider("fixture-v1")
 
     first = service.index_scope(scope, provider)
     second = service.index_scope(scope, provider)
@@ -87,8 +84,8 @@ def test_same_chunks_can_be_indexed_by_multiple_providers(
     scope = _create_indexable_scope(session_factory, "embedding-providers")
     service = EmbeddingService(session_factory)
 
-    first = service.index_scope(scope, TestProvider("fixture-a"))
-    second = service.index_scope(scope, TestProvider("fixture-b"))
+    first = service.index_scope(scope, FixtureProvider("fixture-a"))
+    second = service.index_scope(scope, FixtureProvider("fixture-b"))
 
     assert first.indexed_chunks > 0
     assert second.indexed_chunks == first.indexed_chunks
@@ -106,7 +103,7 @@ def test_embedding_index_is_scope_isolated(
     first_scope = _create_indexable_scope(session_factory, "embedding-first")
     second_scope = _create_indexable_scope(session_factory, "embedding-second")
     service = EmbeddingService(session_factory)
-    provider = TestProvider("fixture-isolated")
+    provider = FixtureProvider("fixture-isolated")
 
     service.index_scope(first_scope, provider)
 
