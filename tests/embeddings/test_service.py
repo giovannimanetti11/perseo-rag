@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import pytest
 
 from perseo_rag.embeddings import EmbeddingService, InvalidEmbedding
+from perseo_rag.embeddings.validation import validate_provider, validate_vectors
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,17 +38,13 @@ def test_batch_size_must_be_positive() -> None:
     ],
 )
 def test_invalid_provider_configuration_is_rejected(provider: Provider) -> None:
-    service = EmbeddingService(None)  # type: ignore[arg-type]
-
     with pytest.raises(InvalidEmbedding):
-        service._validate_provider(provider)
+        validate_provider(provider)
 
 
 def test_invalid_dimensions_are_rejected() -> None:
-    service = EmbeddingService(None)  # type: ignore[arg-type]
-
     with pytest.raises(InvalidEmbedding):
-        service._validate_vectors(
+        validate_vectors(
             InvalidProvider().embed(["content"]),
             expected_count=1,
             dimensions=2,
@@ -55,10 +52,8 @@ def test_invalid_dimensions_are_rejected() -> None:
 
 
 def test_non_finite_embeddings_are_rejected() -> None:
-    service = EmbeddingService(None)  # type: ignore[arg-type]
-
     with pytest.raises(InvalidEmbedding):
-        service._validate_vectors(
+        validate_vectors(
             [[float("nan"), 1.0]],
             expected_count=1,
             dimensions=2,
@@ -66,7 +61,5 @@ def test_non_finite_embeddings_are_rejected() -> None:
 
 
 def test_embedding_count_must_match_input_count() -> None:
-    service = EmbeddingService(None)  # type: ignore[arg-type]
-
     with pytest.raises(InvalidEmbedding):
-        service._validate_vectors([], expected_count=1, dimensions=2)
+        validate_vectors([], expected_count=1, dimensions=2)

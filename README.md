@@ -150,11 +150,29 @@ Provider output is validated for count, dimensionality and finite numeric values
 
 ## Retrieval
 
-The first retrieval path is PostgreSQL full-text search over normalized chunk content. User queries are parsed with `websearch_to_tsquery` and ranked with cover-density ranking.
+Perseo RAG exposes independent lexical and dense retrieval paths.
 
-Lexical retrieval runs inside the same scope-constrained database transaction used by the rest of the storage layer. Rows from another scope cannot enter the candidate set.
+Lexical search uses PostgreSQL full-text search. User queries are parsed with `websearch_to_tsquery` and ranked with cover-density ranking.
 
-Dense retrieval and rank fusion are the next retrieval stages. The final hybrid strategy will combine independent lexical and semantic candidate lists before optional reranking.
+Dense search embeds the query with the same provider identity used for the selected vector index, filters by scope, provider and dimensionality, then orders candidates by cosine distance.
+
+Hybrid retrieval combines the two ranked candidate lists with Reciprocal Rank Fusion:
+
+```text
+query
+ ├── lexical candidates
+ └── dense candidates
+          │
+          ▼
+        RRF
+          │
+          ▼
+    fused evidence
+```
+
+Fusion depends on rank positions rather than the raw scores produced by each retrieval method, so lexical and vector score scales do not need to be normalized against one another.
+
+Both candidate lists are scope-constrained before fusion. The fusion layer never receives cross-scope candidates.
 
 ## Grounding and citations
 
@@ -241,8 +259,8 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 - [x] Versioned ingestion pipeline
 - [x] Embedding and full-text indexing
 - [x] Lexical retrieval
-- [ ] Dense retrieval
-- [ ] Hybrid retrieval and rank fusion
+- [x] Dense retrieval
+- [x] Hybrid retrieval and rank fusion
 - [ ] Grounded generation and citations
 - [x] Row-level security policies
 - [ ] Retrieval evaluation suite
