@@ -4,8 +4,8 @@ import pytest
 
 from perseo_rag.retrieval import (
     InconsistentRetrievalHit,
-    RetrievalHit,
     reciprocal_rank_fusion,
+    RetrievalHit,
 )
 
 
