@@ -2,7 +2,11 @@ from uuid import UUID
 
 import pytest
 
-from perseo_rag.retrieval import InconsistentRetrievalHit, RetrievalHit, reciprocal_rank_fusion
+from perseo_rag.retrieval import (
+    InconsistentRetrievalHit,
+    RetrievalHit,
+    reciprocal_rank_fusion,
+)
 
 
 SCOPE_ID = UUID(int=100)
