@@ -5,7 +5,6 @@ import pytest
 from perseo_rag.retrieval.fusion import InconsistentRetrievalHit, reciprocal_rank_fusion
 from perseo_rag.retrieval.models import RetrievalHit
 
-
 SCOPE_ID = UUID(int=100)
 
 
