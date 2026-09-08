@@ -53,7 +53,7 @@ def test_rrf_rejects_conflicting_provenance_for_same_chunk() -> None:
     shared = _hit(1, 0.5)
     conflicting = _hit(1, 0.7, scope_id=UUID(int=200))
 
-    with pytest.raises(Inconsistentretrieval.RetrievalHit):
+    with pytest.raises(retrieval.InconsistentRetrievalHit):
         retrieval.reciprocal_rank_fusion([shared], [conflicting])
 
 
