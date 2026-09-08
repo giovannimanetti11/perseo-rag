@@ -1,0 +1,33 @@
+{
+  "documents": [
+    {
+      "key": "canonical",
+      "source_ref": "fixture:canonical",
+      "content": "Canonical metadata should identify the preferred version of a page."
+    },
+    {
+      "key": "performance",
+      "source_ref": "fixture:performance",
+      "content": "Performance budgets help detect regressions in loading speed and rendering."
+    },
+    {
+      "key": "accessibility",
+      "source_ref": "fixture:accessibility",
+      "content": "Accessibility checks should include labels, keyboard navigation and semantic structure."
+    }
+  ],
+  "queries": [
+    {
+      "query": "canonical metadata",
+      "relevant": ["canonical"]
+    },
+    {
+      "query": "loading performance",
+      "relevant": ["performance"]
+    },
+    {
+      "query": "keyboard accessibility",
+      "relevant": ["accessibility"]
+    }
+  ]
+}

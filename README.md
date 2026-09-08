@@ -176,11 +176,26 @@ Both candidate lists are scope-constrained before fusion. The fusion layer never
 
 ## Grounding and citations
 
-Each generated answer is derived from a bounded context assembled from retrieved chunks.
+Retrieved results are converted into a bounded, structured evidence context before generation.
 
-A citation resolves back to a concrete document version and chunk. This keeps the response traceable to the source state that was actually used, even when a document has changed since ingestion.
+Each evidence item receives a stable local citation identifier and retains its scope, chunk, document version, document and source reference. The context builder enforces item and character budgets, deduplicates chunks and rejects cross-scope evidence before it can reach a generation provider.
+
+A citation therefore resolves back to the exact document version and chunk that was present in the context.
 
 When retrieval does not provide enough evidence, the expected behavior is to abstain rather than fill gaps from model priors.
+
+## Evaluation
+
+Retrieval quality is measured with versioned synthetic fixtures rather than informal spot checks.
+
+The initial suite reports:
+
+- Recall@K;
+- Mean Reciprocal Rank;
+- cross-scope leakage rate;
+- number of cases containing leaked evidence.
+
+The acceptable leakage rate is zero. The synthetic baseline lives under `eval/` and can be reused when retrieval parameters or providers change.
 
 ## Security model
 
@@ -261,9 +276,10 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 - [x] Lexical retrieval
 - [x] Dense retrieval
 - [x] Hybrid retrieval and rank fusion
-- [ ] Grounded generation and citations
+- [x] Grounded context and citation provenance
+- [ ] Generation and citation validation
 - [x] Row-level security policies
-- [ ] Retrieval evaluation suite
+- [x] Retrieval evaluation suite
 - [x] Cross-scope security tests
 - [ ] First tagged release
 

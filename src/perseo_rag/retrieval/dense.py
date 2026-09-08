@@ -51,6 +51,7 @@ class DenseRetriever:
             )
             statement = (
                 select(
+                    ChunkRecord.scope_id,
                     ChunkRecord.id,
                     ChunkRecord.document_version_id,
                     DocumentRecord.id,
@@ -93,6 +94,7 @@ class DenseRetriever:
 
             return tuple(
                 RetrievalHit(
+                    scope_id=scope_id,
                     chunk_id=chunk_id,
                     document_version_id=version_id,
                     document_id=document_id,
@@ -101,6 +103,7 @@ class DenseRetriever:
                     score=1.0 - float(cosine_distance),
                 )
                 for (
+                    scope_id,
                     chunk_id,
                     version_id,
                     document_id,

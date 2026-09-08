@@ -4,6 +4,7 @@ from uuid import UUID
 
 @dataclass(frozen=True, slots=True)
 class RetrievalHit:
+    scope_id: UUID
     chunk_id: UUID
     document_version_id: UUID
     document_id: UUID
@@ -14,6 +15,7 @@ class RetrievalHit:
 
 @dataclass(frozen=True, slots=True)
 class HybridRetrievalHit:
+    scope_id: UUID
     chunk_id: UUID
     document_version_id: UUID
     document_id: UUID

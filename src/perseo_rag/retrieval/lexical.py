@@ -44,6 +44,7 @@ class LexicalRetriever:
 
             statement = (
                 select(
+                    ChunkRecord.scope_id,
                     ChunkRecord.id,
                     ChunkRecord.document_version_id,
                     DocumentRecord.id,
@@ -78,6 +79,7 @@ class LexicalRetriever:
 
             return tuple(
                 RetrievalHit(
+                    scope_id=scope_id,
                     chunk_id=chunk_id,
                     document_version_id=version_id,
                     document_id=document_id,
@@ -85,7 +87,13 @@ class LexicalRetriever:
                     content=content,
                     score=float(rank),
                 )
-                for chunk_id, version_id, document_id, source_ref, content, rank in session.execute(
-                    statement
-                )
+                for (
+                    scope_id,
+                    chunk_id,
+                    version_id,
+                    document_id,
+                    source_ref,
+                    content,
+                    rank,
+                ) in session.execute(statement)
             )

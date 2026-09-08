@@ -5,6 +5,10 @@ from uuid import UUID
 from perseo_rag.retrieval.models import HybridRetrievalHit, RetrievalHit
 
 
+class InconsistentRetrievalHit(ValueError):
+    pass
+
+
 @dataclass(slots=True)
 class _FusionEntry:
     hit: RetrievalHit
@@ -37,6 +41,7 @@ def reciprocal_rank_fusion(
 
     return tuple(
         HybridRetrievalHit(
+            scope_id=entry.hit.scope_id,
             chunk_id=entry.hit.chunk_id,
             document_version_id=entry.hit.document_version_id,
             document_id=entry.hit.document_id,
@@ -57,10 +62,26 @@ def _accumulate(
     channel: str,
 ) -> None:
     for rank, hit in enumerate(hits, start=1):
-        entry = entries.setdefault(hit.chunk_id, _FusionEntry(hit=hit))
+        entry = entries.get(hit.chunk_id)
+        if entry is None:
+            entry = _FusionEntry(hit=hit)
+            entries[hit.chunk_id] = entry
+        elif not _same_provenance(entry.hit, hit):
+            raise InconsistentRetrievalHit(f"conflicting provenance for chunk {hit.chunk_id}")
+
         entry.score += 1.0 / (rank_constant + rank)
 
         if channel == "lexical":
             entry.lexical_rank = rank
         else:
             entry.dense_rank = rank
+
+
+def _same_provenance(first: RetrievalHit, second: RetrievalHit) -> bool:
+    return (
+        first.scope_id == second.scope_id
+        and first.document_version_id == second.document_version_id
+        and first.document_id == second.document_id
+        and first.source_ref == second.source_ref
+        and first.content == second.content
+    )
