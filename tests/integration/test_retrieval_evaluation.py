@@ -156,8 +156,7 @@ def test_hybrid_retrieval_meets_synthetic_quality_and_isolation_baseline(
     for query in fixture["queries"]:
         hits = retriever.search(owner_scope, query["query"], provider, limit=3)
         relevant = frozenset(
-            owner_chunks[documents_by_key[key]["source_ref"]]
-            for key in query["relevant"]
+            owner_chunks[documents_by_key[key]["source_ref"]] for key in query["relevant"]
         )
         cases.append(
             EvaluationCase(
