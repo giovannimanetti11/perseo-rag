@@ -128,7 +128,7 @@ def _chunk_ids_by_source(
             )
             .where(DocumentRecord.scope_id == scope.id)
         )
-        return dict(session.execute(statement))
+        return dict(session.execute(statement).all())
 
 
 @pytest.mark.integration
