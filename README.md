@@ -184,6 +184,41 @@ A citation therefore resolves back to the exact document version and chunk that 
 
 When retrieval does not provide enough evidence, the expected behavior is to abstain rather than fill gaps from model priors.
 
+## Generation
+
+Generation is downstream from a deterministic evidence gate.
+
+The core passes a structured request to the configured provider rather than concatenating evidence and instructions into a single application-owned prompt:
+
+```text
+question
+   │
+   ▼
+evidence policy
+   ├── insufficient ──► abstain
+   │
+   └── sufficient
+          │
+          ▼
+   structured request
+          │
+          ▼
+       provider
+          │
+          ▼
+ text + citation ids
+          │
+          ▼
+ citation validation
+          │
+          ▼
+   grounded answer
+```
+
+An answered result must contain at least one citation identifier present in the bounded context. Unknown citations, empty generated text and uncited answers are rejected rather than returned as grounded output.
+
+Provider implementations remain replaceable and own transport-specific serialization. The core only defines the request and response contracts.
+
 ## Evaluation
 
 Retrieval quality is measured with versioned synthetic fixtures rather than informal spot checks.
@@ -277,7 +312,7 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 - [x] Dense retrieval
 - [x] Hybrid retrieval and rank fusion
 - [x] Grounded context and citation provenance
-- [ ] Generation and citation validation
+- [x] Generation abstraction, abstention and citation validation
 - [x] Row-level security policies
 - [x] Retrieval evaluation suite
 - [x] Cross-scope security tests
