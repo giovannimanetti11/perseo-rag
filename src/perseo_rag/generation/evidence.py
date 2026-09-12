@@ -15,4 +15,6 @@ class EvidencePolicy:
             raise ValueError("min_total_chars must be positive")
 
     def is_sufficient(self, context: GroundedContext) -> bool:
-        return len(context.evidence) >= self.min_items and context.total_chars >= self.min_total_chars
+        return (
+            len(context.evidence) >= self.min_items and context.total_chars >= self.min_total_chars
+        )
