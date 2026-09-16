@@ -219,6 +219,33 @@ An answered result must contain at least one citation identifier present in the 
 
 Provider implementations remain replaceable and own transport-specific serialization. The core only defines the request and response contracts.
 
+## Application orchestration
+
+The application layer coordinates retrieval, context assembly and generation without owning authentication or provider transport.
+
+```text
+authenticated host request
+          │
+          ▼
+     ScopeResolver
+          │
+          ▼
+       QueryInput
+          │
+          ▼
+     QueryService
+      │    │    │
+      ▼    ▼    ▼
+ retrieval context generation
+          │
+          ▼
+      QueryResult
+```
+
+Authorization context is supplied separately from query input. The HTTP request body does not contain a scope identifier, and unknown request fields are rejected.
+
+The default application instance exposes only infrastructure-safe routes. Query handling is registered when the host application injects both a query handler and a scope resolver.
+
 ## Evaluation
 
 Retrieval quality is measured with versioned synthetic fixtures rather than informal spot checks.
@@ -313,6 +340,7 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 - [x] Hybrid retrieval and rank fusion
 - [x] Grounded context and citation provenance
 - [x] Generation abstraction, abstention and citation validation
+- [x] Application orchestration and thin HTTP query layer
 - [x] Row-level security policies
 - [x] Retrieval evaluation suite
 - [x] Cross-scope security tests
