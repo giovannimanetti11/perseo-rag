@@ -3,7 +3,12 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from perseo_rag.application import QueryInput, QueryService
-from perseo_rag.generation import AnswerStatus, GenerationOutput, GenerationRequest, GenerationService
+from perseo_rag.generation import (
+    AnswerStatus,
+    GenerationOutput,
+    GenerationRequest,
+    GenerationService,
+)
 from perseo_rag.grounding import GroundedContextBuilder
 from perseo_rag.retrieval import HybridRetrievalHit
 from perseo_rag.security import ScopeContext
