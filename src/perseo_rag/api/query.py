@@ -2,9 +2,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 
-from perseo_rag.application import QueryHandler, QueryInput
 from perseo_rag.api.contracts import CitationResponse, QueryRequest, QueryResponse
 from perseo_rag.api.scope import ScopeResolver
+from perseo_rag.application import QueryHandler, QueryInput
 from perseo_rag.security import ScopeContext
 
 
