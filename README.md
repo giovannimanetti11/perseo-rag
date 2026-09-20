@@ -219,6 +219,12 @@ An answered result must contain at least one citation identifier present in the 
 
 Provider implementations remain replaceable and own transport-specific serialization. The core only defines the request and response contracts.
 
+## Provider reliability
+
+Provider failures use a small, shared error taxonomy: timeout, temporary unavailability, rate limiting and protocol errors.
+
+Transient failures can be wrapped with a bounded retry policy using exponential backoff. Protocol errors are never retried automatically. Retry behavior is intentionally provider-agnostic: concrete adapters translate SDK or transport failures into the core error types, while the core controls retry limits and delays.
+
 ## Application orchestration
 
 The application layer coordinates retrieval, context assembly and generation without owning authentication or provider transport.
@@ -341,6 +347,7 @@ uv run pytest --cov=perseo_rag --cov-report=term-missing
 - [x] Grounded context and citation provenance
 - [x] Generation abstraction, abstention and citation validation
 - [x] Application orchestration and thin HTTP query layer
+- [x] Provider error taxonomy and bounded retries
 - [x] Row-level security policies
 - [x] Retrieval evaluation suite
 - [x] Cross-scope security tests
