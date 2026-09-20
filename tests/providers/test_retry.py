@@ -25,9 +25,7 @@ class Operation:
 
 def test_retry_succeeds_after_transient_failures() -> None:
     delays: list[float] = []
-    operation = Operation(
-        failures=[ProviderTimeout("timeout"), ProviderUnavailable("unavailable")]
-    )
+    operation = Operation(failures=[ProviderTimeout("timeout"), ProviderUnavailable("unavailable")])
 
     result = call_with_retry(
         operation,
