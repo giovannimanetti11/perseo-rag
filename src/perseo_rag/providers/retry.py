@@ -1,15 +1,12 @@
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TypeVar
-
 from perseo_rag.providers.errors import (
     ProviderRateLimited,
     ProviderTimeout,
     ProviderUnavailable,
 )
 
-T = TypeVar("T")
 Sleeper = Callable[[float], None]
 TransientProviderError = ProviderTimeout | ProviderUnavailable | ProviderRateLimited
 
@@ -39,7 +36,7 @@ class RetryPolicy:
         return min(delay, self.max_delay)
 
 
-def call_with_retry(
+def call_with_retry[T](
     operation: Callable[[], T],
     *,
     policy: RetryPolicy,
