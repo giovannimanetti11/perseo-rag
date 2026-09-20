@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from perseo_rag.generation import GenerationOutput, GenerationRequest
 from perseo_rag.providers import (
     ProviderTimeout,
-    RetryPolicy,
     RetryingEmbeddingProvider,
     RetryingGenerationProvider,
+    RetryPolicy,
 )
 
 
