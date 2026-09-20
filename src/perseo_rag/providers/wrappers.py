@@ -27,7 +27,9 @@ class RetryingEmbeddingProvider:
         return self._provider.dimensions
 
     def embed(self, texts: Sequence[str]) -> Sequence[Sequence[float]]:
-        operation = lambda: self._provider.embed(texts)
+        def operation() -> Sequence[Sequence[float]]:
+            return self._provider.embed(texts)
+
         if self._sleeper is None:
             return call_with_retry(operation, policy=self._retry_policy)
 
@@ -55,7 +57,9 @@ class RetryingGenerationProvider:
         return self._provider.key
 
     def generate(self, request: GenerationRequest) -> GenerationOutput:
-        operation = lambda: self._provider.generate(request)
+        def operation() -> GenerationOutput:
+            return self._provider.generate(request)
+
         if self._sleeper is None:
             return call_with_retry(operation, policy=self._retry_policy)
 
