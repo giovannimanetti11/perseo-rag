@@ -1,6 +1,7 @@
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+
 from perseo_rag.providers.errors import (
     ProviderRateLimited,
     ProviderTimeout,
