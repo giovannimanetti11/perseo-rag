@@ -5,7 +5,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from perseo_rag.retrieval.models import RetrievalHit
 from perseo_rag.security import ScopeContext, scoped_session
-from perseo_rag.storage.schema import ChunkRecord, DocumentRecord, DocumentVersionRecord
+from perseo_rag.storage.schema import (
+    ChunkRecord,
+    DocumentHeadRecord,
+    DocumentRecord,
+    DocumentVersionRecord,
+)
 
 
 class LexicalRetriever:
@@ -57,6 +62,14 @@ class LexicalRetriever:
                     and_(
                         DocumentVersionRecord.scope_id == ChunkRecord.scope_id,
                         DocumentVersionRecord.id == ChunkRecord.document_version_id,
+                    ),
+                )
+                .join(
+                    DocumentHeadRecord,
+                    and_(
+                        DocumentHeadRecord.scope_id == DocumentVersionRecord.scope_id,
+                        DocumentHeadRecord.document_id == DocumentVersionRecord.document_id,
+                        DocumentHeadRecord.version_id == DocumentVersionRecord.id,
                     ),
                 )
                 .join(

@@ -178,3 +178,39 @@ def test_dense_retrieval_respects_collection_filter(
 
     assert len(hits) == 1
     assert hits[0].source_ref == "fixture:second"
+
+
+@pytest.mark.integration
+def test_dense_retrieval_uses_only_current_document_version(
+    session_factory: sessionmaker[Session],
+) -> None:
+    scope, collection_id = _create_scope(session_factory, "dense-current")
+    service = IngestionService(session_factory)
+    provider = KeywordProvider()
+    source_ref = "fixture:versioned"
+
+    service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="text",
+            source_ref=source_ref,
+            content="Canonical evidence from an obsolete version.",
+        ),
+    )
+    current = service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="text",
+            source_ref=source_ref,
+            content="Performance evidence from the current version.",
+        ),
+    )
+
+    EmbeddingService(session_factory).index_scope(scope, provider)
+    hits = DenseRetriever(session_factory).search(scope, "canonical", provider)
+
+    assert len(hits) == 1
+    assert hits[0].document_version_id == current.version_id
+    assert hits[0].content == "Performance evidence from the current version."

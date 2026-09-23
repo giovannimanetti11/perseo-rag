@@ -121,3 +121,39 @@ def test_lexical_retrieval_accepts_untrusted_search_syntax(
     hits = LexicalRetriever(session_factory).search(scope, '""" )( dummy \\ query <->')
 
     assert hits == ()
+
+
+@pytest.mark.integration
+def test_lexical_retrieval_uses_only_current_document_version(
+    session_factory: sessionmaker[Session],
+) -> None:
+    scope, collection_id = _create_scope(session_factory, "lexical-current")
+    service = IngestionService(session_factory)
+    source_ref = "https://example.test/versioned"
+
+    service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="web",
+            source_ref=source_ref,
+            content="Obsolete canonical evidence.",
+        ),
+    )
+    current = service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="web",
+            source_ref=source_ref,
+            content="Current performance evidence.",
+        ),
+    )
+
+    assert LexicalRetriever(session_factory).search(scope, "canonical") == ()
+
+    hits = LexicalRetriever(session_factory).search(scope, "performance")
+
+    assert len(hits) == 1
+    assert hits[0].document_version_id == current.version_id
+    assert hits[0].content == "Current performance evidence."

@@ -24,22 +24,20 @@ class IngestionService:
             repository.ensure_collection(normalized.collection_id)
 
             document_id = repository.get_or_create_document(normalized)
+            repository.lock_document(document_id)
             version_id, created = repository.get_or_create_version(document_id, normalized)
 
-            if not created:
-                return IngestionResult(
-                    document_id=document_id,
-                    version_id=version_id,
-                    created=False,
-                    chunk_count=0,
-                )
+            chunk_count = 0
+            if created:
+                chunks = self._chunker.split(normalized.content)
+                repository.add_chunks(version_id, chunks)
+                chunk_count = len(chunks)
 
-            chunks = self._chunker.split(normalized.content)
-            repository.add_chunks(version_id, chunks)
+            repository.set_document_head(document_id, version_id)
 
             return IngestionResult(
                 document_id=document_id,
                 version_id=version_id,
-                created=True,
-                chunk_count=len(chunks),
+                created=created,
+                chunk_count=chunk_count,
             )

@@ -96,6 +96,12 @@ class DocumentVersionRecord(Base):
         UniqueConstraint(
             "scope_id",
             "document_id",
+            "id",
+            name="uq_document_versions_scope_document_id",
+        ),
+        UniqueConstraint(
+            "scope_id",
+            "document_id",
             "content_hash",
             name="uq_document_versions_content",
         ),
@@ -117,6 +123,27 @@ class DocumentVersionRecord(Base):
         nullable=False,
         default=dict,
     )
+
+
+class DocumentHeadRecord(Base):
+    __tablename__ = "document_heads"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["scope_id", "document_id", "version_id"],
+            [
+                "document_versions.scope_id",
+                "document_versions.document_id",
+                "document_versions.id",
+            ],
+            name="fk_document_heads_scope_document_version",
+            ondelete="CASCADE",
+        ),
+        Index("ix_document_heads_scope_id", "scope_id"),
+    )
+
+    scope_id: Mapped[UUID] = mapped_column(primary_key=True)
+    document_id: Mapped[UUID] = mapped_column(primary_key=True)
+    version_id: Mapped[UUID] = mapped_column(nullable=False)
 
 
 class ChunkRecord(Base):

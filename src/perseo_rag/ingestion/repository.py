@@ -8,6 +8,7 @@ from perseo_rag.ingestion.models import NormalizedDocument
 from perseo_rag.storage.schema import (
     ChunkRecord,
     CollectionRecord,
+    DocumentHeadRecord,
     DocumentRecord,
     DocumentVersionRecord,
 )
@@ -62,6 +63,18 @@ class SqlAlchemyIngestionRepository:
 
         return existing
 
+    def lock_document(self, document_id: UUID) -> None:
+        statement = (
+            select(DocumentRecord.id)
+            .where(
+                DocumentRecord.scope_id == self._scope_id,
+                DocumentRecord.id == document_id,
+            )
+            .with_for_update()
+        )
+        if self._session.scalar(statement) is None:
+            raise RuntimeError(f"document {document_id} was not found")
+
     def get_or_create_version(
         self,
         document_id: UUID,
@@ -108,3 +121,21 @@ class SqlAlchemyIngestionRepository:
             )
             for position, content in enumerate(chunks)
         )
+
+    def set_document_head(self, document_id: UUID, version_id: UUID) -> None:
+        statement = (
+            insert(DocumentHeadRecord)
+            .values(
+                scope_id=self._scope_id,
+                document_id=document_id,
+                version_id=version_id,
+            )
+            .on_conflict_do_update(
+                index_elements=[
+                    DocumentHeadRecord.scope_id,
+                    DocumentHeadRecord.document_id,
+                ],
+                set_={"version_id": version_id},
+            )
+        )
+        self._session.execute(statement)

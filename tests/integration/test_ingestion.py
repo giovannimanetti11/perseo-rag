@@ -11,6 +11,7 @@ from perseo_rag.storage import build_engine, build_session_factory
 from perseo_rag.storage.schema import (
     ChunkRecord,
     CollectionRecord,
+    DocumentHeadRecord,
     DocumentRecord,
     DocumentVersionRecord,
     ScopeRecord,
@@ -78,10 +79,16 @@ def test_identical_document_state_is_idempotent(
         document_count = session.scalar(select(func.count()).select_from(DocumentRecord))
         version_count = session.scalar(select(func.count()).select_from(DocumentVersionRecord))
         chunk_count = session.scalar(select(func.count()).select_from(ChunkRecord))
+        head_version = session.scalar(
+            select(DocumentHeadRecord.version_id).where(
+                DocumentHeadRecord.document_id == first.document_id
+            )
+        )
 
     assert document_count == 1
     assert version_count == 1
     assert chunk_count == first.chunk_count
+    assert head_version == first.version_id
 
 
 @pytest.mark.integration
@@ -117,8 +124,65 @@ def test_changed_document_state_creates_a_new_version(
 
     with scoped_session(session_factory, scope) as session:
         version_count = session.scalar(select(func.count()).select_from(DocumentVersionRecord))
+        head_version = session.scalar(
+            select(DocumentHeadRecord.version_id).where(
+                DocumentHeadRecord.document_id == first.document_id
+            )
+        )
 
     assert version_count == 2
+    assert head_version == second.version_id
+
+
+@pytest.mark.integration
+def test_reingesting_historical_state_moves_document_head_without_duplicate_version(
+    session_factory: sessionmaker[Session],
+) -> None:
+    scope, collection_id = _create_scope_with_collection(session_factory, "reversion")
+    service = IngestionService(session_factory)
+    source_ref = "https://example.test/reversion"
+
+    first = service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="web",
+            source_ref=source_ref,
+            content="State A",
+        ),
+    )
+    service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="web",
+            source_ref=source_ref,
+            content="State B",
+        ),
+    )
+    reverted = service.ingest(
+        scope,
+        DocumentInput(
+            collection_id=collection_id,
+            source_type="web",
+            source_ref=source_ref,
+            content="State A",
+        ),
+    )
+
+    assert reverted.created is False
+    assert reverted.version_id == first.version_id
+
+    with scoped_session(session_factory, scope) as session:
+        version_count = session.scalar(select(func.count()).select_from(DocumentVersionRecord))
+        head_version = session.scalar(
+            select(DocumentHeadRecord.version_id).where(
+                DocumentHeadRecord.document_id == first.document_id
+            )
+        )
+
+    assert version_count == 2
+    assert head_version == first.version_id
 
 
 @pytest.mark.integration
