@@ -4,13 +4,29 @@ build-backend = "hatchling.build"
 
 [project]
 name = "perseo-rag"
-version = "0.1.0"
-description = "Retrieval service for grounded question answering over versioned document collections."
+version = "1.0.0"
+description = "Provider-agnostic RAG core with versioned ingestion, hybrid PostgreSQL/pgvector retrieval, grounded citations, scope isolation, and FastAPI orchestration."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [
     { name = "Giovanni Manetti" },
+]
+keywords = [
+    "rag",
+    "retrieval-augmented-generation",
+    "pgvector",
+    "postgresql",
+    "fastapi",
+    "hybrid-search",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "alembic>=1.15,<2",
@@ -21,6 +37,11 @@ dependencies = [
     "sqlalchemy>=2.0.54,<2.1",
     "uvicorn[standard]>=0.53,<0.54",
 ]
+
+[project.urls]
+Homepage = "https://github.com/giovannimanetti11/perseo-rag"
+Repository = "https://github.com/giovannimanetti11/perseo-rag"
+Issues = "https://github.com/giovannimanetti11/perseo-rag/issues"
 
 [dependency-groups]
 dev = [

@@ -1,53 +1,56 @@
 # Perseo RAG
 
 [![CI](https://github.com/giovannimanetti11/perseo-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/giovannimanetti11/perseo-rag/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/giovannimanetti11/perseo-rag?style=flat-square)](https://github.com/giovannimanetti11/perseo-rag/releases)
 [![License](https://img.shields.io/github/license/giovannimanetti11/perseo-rag?style=flat-square)](LICENSE)
-[![Last commit](https://img.shields.io/github/last-commit/giovannimanetti11/perseo-rag?style=flat-square)](https://github.com/giovannimanetti11/perseo-rag/commits/main)
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-service%20layer-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![pgvector](https://img.shields.io/badge/pgvector-vector%20search-336791?style=flat-square&logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 
-Perseo RAG is a retrieval service for grounded question answering over versioned document collections.
+**Provider-agnostic RAG core with versioned ingestion, hybrid PostgreSQL/pgvector retrieval, grounded citations, scope isolation, evaluation, and FastAPI orchestration.**
 
-The project is built around a small set of constraints: scope isolation, traceable answers, deterministic ingestion, provider-independent generation, and a storage model that remains inspectable without depending on a proprietary vector database.
+Perseo RAG is a reusable retrieval and grounding service for applications that need traceable question answering over private or shared document collections. The core is deliberately independent from source systems, model runtimes and product-specific authorization models.
 
-> The repository is in active development. Public interfaces may change until the first tagged release.
+Version 1.0 establishes the first stable release line.
 
-## Goals
+## What it provides
 
-Perseo RAG is intended to provide a reusable retrieval layer for applications that need to:
-
-- ingest structured or semi-structured documents;
-- preserve document history instead of overwriting source material;
-- retrieve evidence with scope boundaries applied before ranking;
-- combine semantic and lexical retrieval;
-- return answers with source attribution;
-- abstain when the available evidence is insufficient.
-
-The core is deliberately application-agnostic. A scope represents the authorization boundary chosen by the integrating application, such as a workspace, organization or user. Product-specific adapters, deployment topology and environment-specific configuration are outside the scope of this repository.
+- deterministic, idempotent document ingestion;
+- immutable document versions with an explicit current-version head;
+- PostgreSQL full-text search;
+- provider-keyed vector embeddings with pgvector;
+- dense and lexical retrieval combined with Reciprocal Rank Fusion;
+- scope isolation before candidate ranking;
+- PostgreSQL Row-Level Security as an independent enforcement layer;
+- bounded grounded context with provenance and local citation identifiers;
+- evidence-based abstention before generation;
+- citation validation after generation;
+- provider-independent embedding and generation interfaces;
+- bounded retry primitives for transient provider failures;
+- synthetic retrieval evaluation with Recall@K, MRR and leakage metrics;
+- FastAPI orchestration that keeps authorization scope outside query payloads.
 
 ## Design principles
 
 **Isolation first**  
-Scope boundaries are part of the data model and retrieval path, not an application-level convention.
+Authorization scope is part of persistence and retrieval. Candidate selection is never global-then-filtered.
 
-**Evidence over fluent output**  
-Generation is downstream from retrieval. Answers are expected to remain grounded in retrieved material and expose their sources.
+**Evidence before generation**  
+Generation only receives bounded evidence that has passed scope validation. Insufficient evidence produces an explicit abstention.
 
-**Versioned source material**  
-Documents are immutable at the version level. New source states create new versions, making historical retrieval and audit possible.
+**Current-state retrieval, preserved history**  
+Every new source state creates an immutable version. A separate document head selects the current version used by default retrieval. Historical versions remain stored for audit and future history-aware use cases.
 
-**Storage that can be inspected**  
-PostgreSQL stores application data, metadata and vector representations. Retrieval can be reasoned about with ordinary database tooling.
+**Inspectable storage**  
+Documents, metadata, lexical indexes and vectors live in PostgreSQL. The system does not require a proprietary vector database.
 
 **Replaceable providers**  
-Embedding and generation providers are behind internal interfaces. The domain layer does not depend on a specific model runtime.
+Embedding and generation providers are protocols owned by the core. Provider SDKs and deployment-specific adapters stay outside the domain model.
 
 **No implicit network access**  
-The core accepts normalized input. It does not fetch arbitrary remote URLs on behalf of callers.
+The core accepts normalized data and does not fetch arbitrary URLs on behalf of callers.
 
-## High-level architecture
+## Architecture
 
 ```text
 Source adapter
@@ -56,107 +59,79 @@ Source adapter
 Normalization
      │
      ▼
-Document versioning
+Versioned ingestion
      │
-     ▼
-Chunking
-     │
-     ├──────────────┐
-     ▼              ▼
-Embeddings     Text indexing
-     │              │
-     └──────┬───────┘
-            ▼
-      Hybrid retrieval
-            │
-            ▼
-        Reranking
-            │
-            ▼
-     Grounded context
-            │
-            ▼
-        Generation
-            │
-            ▼
-    Answer + citations
+     ├── immutable versions
+     └── current document head
+              │
+              ▼
+          Chunking
+          /      \
+         ▼        ▼
+   Embeddings    FTS
+         \        /
+          ▼      ▼
+       Hybrid retrieval
+              │
+              ▼
+       Grounded context
+              │
+              ▼
+        Evidence policy
+         /          \
+        ▼            ▼
+    abstain       Generation
+                      │
+                      ▼
+             Citation validation
+                      │
+                      ▼
+              Grounded answer
 ```
 
-The storage hierarchy is intentionally explicit:
+The storage hierarchy is explicit:
 
 ```text
 Scope
 └── Collection
     └── Document
-        └── Version
+        ├── DocumentHead ──► current DocumentVersion
+        └── DocumentVersion
             └── Chunk
+                └── ChunkEmbedding
 ```
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the architectural boundaries, data model and security invariants.
+## Versioned ingestion
 
-## Ingestion
+A document is identified within a scope by its collection, source type and opaque source reference.
 
-Ingestion accepts normalized application data without embedding authorization information in the payload. The active scope is supplied separately from authenticated application context.
+Content and metadata are normalized and fingerprinted. Re-ingesting an equivalent source state resolves to the existing version; a changed state creates a new immutable version and moves the document head.
 
-A document is identified by its collection, source type and source reference. Each source state is normalized and fingerprinted from its content and metadata:
+A sequence such as:
 
 ```text
-Document input
-      │
-      ▼
-Normalization
-      │
-      ▼
-Deterministic fingerprint
-      │
-      ▼
-Document upsert
-      │
-      ▼
-New state?
-  ├── no  ──► existing version
-  └── yes ──► new immutable version
-                  │
-                  ▼
-               chunks
+A → B → A
 ```
 
-Equivalent content produces the same fingerprint regardless of line-ending differences, trailing whitespace or metadata key order. Re-ingesting the same state is idempotent and does not duplicate versions or chunks.
+produces two versions, not three. The head moves back to the original A version.
 
-`source_ref` is intentionally opaque to the core. URL canonicalization or other source-specific identity rules belong in source adapters.
-
-## Indexing
-
-Chunk text and derived indexes have separate lifecycles.
-
-Full-text search vectors are generated by PostgreSQL and indexed with GIN. Embeddings are stored in a dedicated table keyed by scope, chunk and provider. Reindexing with a different provider therefore does not mutate document versions or replace another provider's vectors.
-
-Embedding implementations conform to a small provider interface:
-
-```text
-chunks
-  │
-  ▼
-EmbeddingProvider
-  │
-  ▼
-validation
-  │
-  ▼
-provider-specific index
-```
-
-Provider output is validated for count, dimensionality and finite numeric values before it is persisted.
+The active scope is supplied separately from document input. Source-specific canonicalization belongs to the source adapter.
 
 ## Retrieval
 
-Perseo RAG exposes independent lexical and dense retrieval paths.
+### Lexical
 
-Lexical search uses PostgreSQL full-text search. User queries are parsed with `websearch_to_tsquery` and ranked with cover-density ranking.
+PostgreSQL full-text search uses a generated `tsvector` column, a GIN index, `websearch_to_tsquery` for user input and `ts_rank_cd` for ranking.
 
-Dense search embeds the query with the same provider identity used for the selected vector index, filters by scope, provider and dimensionality, then orders candidates by cosine distance.
+### Dense
 
-Hybrid retrieval combines the two ranked candidate lists with Reciprocal Rank Fusion:
+Embeddings are stored separately from chunks and keyed by scope, chunk and provider identity. Dense retrieval uses cosine distance and requires matching provider identity and dimensionality.
+
+Version 1.0 uses exact vector search. ANN index selection is intentionally left to deployment-specific optimization because provider dimensionality and corpus size are not core invariants.
+
+### Hybrid
+
+Lexical and dense rankings are combined with Reciprocal Rank Fusion:
 
 ```text
 query
@@ -164,142 +139,145 @@ query
  └── dense candidates
           │
           ▼
-        RRF
+          RRF
           │
           ▼
     fused evidence
 ```
 
-Fusion depends on rank positions rather than the raw scores produced by each retrieval method, so lexical and vector score scales do not need to be normalized against one another.
+Both retrieval branches join through the current document head before ranking, so obsolete versions do not enter the default candidate set.
 
-Both candidate lists are scope-constrained before fusion. The fusion layer never receives cross-scope candidates.
+## Scope isolation
 
-## Grounding and citations
-
-Retrieved results are converted into a bounded, structured evidence context before generation.
-
-Each evidence item receives a stable local citation identifier and retains its scope, chunk, document version, document and source reference. The context builder enforces item and character budgets, deduplicates chunks and rejects cross-scope evidence before it can reach a generation provider.
-
-A citation therefore resolves back to the exact document version and chunk that was present in the context.
-
-When retrieval does not provide enough evidence, the expected behavior is to abstain rather than fill gaps from model priors.
-
-## Generation
-
-Generation is downstream from a deterministic evidence gate.
-
-The core passes a structured request to the configured provider rather than concatenating evidence and instructions into a single application-owned prompt:
-
-```text
-question
-   │
-   ▼
-evidence policy
-   ├── insufficient ──► abstain
-   │
-   └── sufficient
-          │
-          ▼
-   structured request
-          │
-          ▼
-       provider
-          │
-          ▼
- text + citation ids
-          │
-          ▼
- citation validation
-          │
-          ▼
-   grounded answer
-```
-
-An answered result must contain at least one citation identifier present in the bounded context. Unknown citations, empty generated text and uncited answers are rejected rather than returned as grounded output.
-
-Provider implementations remain replaceable and own transport-specific serialization. The core only defines the request and response contracts.
-
-## Provider reliability
-
-Provider failures use a small, shared error taxonomy: timeout, temporary unavailability, rate limiting and protocol errors.
-
-Transient failures can be wrapped with a bounded retry policy using exponential backoff. Protocol errors are never retried automatically. Retry behavior is intentionally provider-agnostic: concrete adapters translate SDK or transport failures into the core error types, while the core controls retry limits and delays.
-
-## Application orchestration
-
-The application layer coordinates retrieval, context assembly and generation without owning authentication or provider transport.
+The required security order is:
 
 ```text
 authenticated host request
-          │
-          ▼
-     ScopeResolver
-          │
-          ▼
-       QueryInput
-          │
-          ▼
-     QueryService
-      │    │    │
-      ▼    ▼    ▼
- retrieval context generation
-          │
-          ▼
-      QueryResult
+        │
+        ▼
+scope resolution
+        │
+        ▼
+application authorization
+        │
+        ▼
+PostgreSQL RLS
+        │
+        ▼
+scope-constrained candidates
+        │
+        ▼
+ranking
+        │
+        ▼
+context scope validation
 ```
 
-Authorization context is supplied separately from query input. The HTTP request body does not contain a scope identifier, and unknown request fields are rejected.
+The runtime database role is separate from the migration role and must not be a superuser or have `BYPASSRLS`.
 
-The default application instance exposes only infrastructure-safe routes. Query handling is registered when the host application injects both a query handler and a scope resolver.
+The HTTP query contract does not accept `scope_id`. Scope resolution belongs to the integrating host application.
+
+## Grounding and generation
+
+Retrieved hits are converted into a structured `GroundedContext`. Each evidence item retains:
+
+- scope ID;
+- chunk ID;
+- document version ID;
+- document ID;
+- source reference;
+- retrieval score;
+- local citation ID.
+
+The context builder enforces character and item budgets, removes duplicate chunks and rejects cross-scope evidence.
+
+Generation is downstream from a deterministic evidence policy:
+
+```text
+question + grounded context
+          │
+          ▼
+   sufficient evidence?
+      /           \
+    no             yes
+    │               │
+    ▼               ▼
+ abstain      provider request
+                    │
+                    ▼
+             text + citation IDs
+                    │
+                    ▼
+             citation validation
+```
+
+An answered result must cite at least one evidence item from the active context. Unknown citations, empty output and uncited answers are rejected.
+
+## Provider contracts and resilience
+
+The core defines protocols for embedding and generation providers. Concrete adapters own transport-specific serialization and translate external failures into the shared error taxonomy.
+
+Transient timeout, unavailability and rate-limit errors can use bounded exponential backoff. Protocol errors are not retried automatically.
+
+A provider handling private data must be explicitly approved by the deployment that configures it.
+
+## Application integration
+
+The default FastAPI application exposes infrastructure-safe endpoints only. The query route is registered when the host injects both a query handler and a scope resolver.
+
+A typical integration composes the core like this:
+
+```python
+from perseo_rag.api import create_app
+from perseo_rag.application import QueryService
+from perseo_rag.generation import GenerationService
+from perseo_rag.grounding import GroundedContextBuilder
+from perseo_rag.retrieval import HybridRetriever
+
+query_service = QueryService(
+    HybridRetriever(session_factory),
+    GroundedContextBuilder(),
+    GenerationService(),
+    embedding_provider,
+    generation_provider,
+)
+
+app = create_app(
+    query_handler=query_service,
+    scope_resolver=resolve_authenticated_scope,
+)
+```
+
+`embedding_provider`, `generation_provider` and `resolve_authenticated_scope` are application-owned adapters. They are intentionally not implemented by the reusable core.
 
 ## Evaluation
 
-Retrieval quality is measured with versioned synthetic fixtures rather than informal spot checks.
+The repository includes deterministic synthetic fixtures under `eval/`.
 
-The initial suite reports:
+The baseline metrics are:
 
 - Recall@K;
 - Mean Reciprocal Rank;
 - cross-scope leakage rate;
-- number of cases containing leaked evidence.
+- number of cases with leaked evidence.
 
-The acceptable leakage rate is zero. The synthetic baseline lives under `eval/` and can be reused when retrieval parameters or providers change.
+Cross-scope leakage has a required value of zero. Evaluation fixtures are intended for regression detection, not as a substitute for domain-specific retrieval benchmarks.
 
-## Security model
-
-Security-sensitive behavior is part of the design rather than a deployment afterthought.
-
-The baseline includes:
-
-- scope-constrained retrieval;
-- PostgreSQL row-level security as a second isolation boundary;
-- bounded input and output sizes;
-- no arbitrary URL fetching in the core;
-- untrusted treatment of retrieved document content;
-- logs that exclude raw document bodies and credentials;
-- dedicated cross-scope leakage tests;
-- no executable tools exposed to the generation layer.
-
-Operational addresses, credentials, private integration details and production deployment configuration do not belong in this repository.
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting and repository security expectations.
-
-## Planned stack
+## Technology
 
 | Area | Choice |
 | --- | --- |
 | Runtime | Python 3.12+ |
 | Service layer | FastAPI |
 | Database | PostgreSQL 17 |
-| Vector search | pgvector |
+| Vector storage/search | pgvector |
+| ORM | SQLAlchemy 2 |
 | Migrations | Alembic |
 | Validation | Pydantic |
 | Dependency management | uv |
-| Test suite | pytest |
+| Tests | pytest / pytest-cov |
 | Linting / formatting | Ruff |
-| Type checking | mypy |
-
-These choices describe the public core. Provider-specific integrations remain replaceable.
+| Type checking | mypy strict |
 
 ## Development
 
@@ -309,7 +287,7 @@ Requirements:
 - [uv](https://docs.astral.sh/uv/);
 - Docker with Compose.
 
-Create the local environment, start PostgreSQL and apply migrations:
+Set up the repository:
 
 ```bash
 cp .env.example .env
@@ -318,55 +296,46 @@ docker compose up -d --wait postgres
 uv run alembic upgrade head
 ```
 
-The development setup uses separate database identities for schema migrations and application traffic. The application identity is non-privileged and does not bypass row-level security.
-
-Run the service locally:
+Run the default service:
 
 ```bash
 uv run uvicorn perseo_rag.api:app --reload
 ```
 
-Run the same quality checks enforced by CI:
+The default app exposes `/health`. Query handling requires host-provided providers and scope resolution as shown above.
+
+Run the quality gates:
 
 ```bash
 uv run ruff format --check .
 uv run ruff check .
 uv run mypy src
 uv run pytest --cov=perseo_rag --cov-report=term-missing
+uv build
 ```
 
-## Development roadmap
+## Version 1.0 boundaries
 
-- [x] Project bootstrap and quality gates
-- [x] Scope, collection and document domain model
-- [x] Versioned ingestion pipeline
-- [x] Embedding and full-text indexing
-- [x] Lexical retrieval
-- [x] Dense retrieval
-- [x] Hybrid retrieval and rank fusion
-- [x] Grounded context and citation provenance
-- [x] Generation abstraction, abstention and citation validation
-- [x] Application orchestration and thin HTTP query layer
-- [x] Provider error taxonomy and bounded retries
-- [x] Row-level security policies
-- [x] Retrieval evaluation suite
-- [x] Cross-scope security tests
-- [ ] First tagged release
+Version 1.0 intentionally does not include:
+
+- source-system-specific crawlers or fetchers;
+- a concrete embedding model;
+- a concrete generation model;
+- authentication implementation;
+- deployment-specific infrastructure;
+- arbitrary model tools, shell access or unrestricted HTTP access;
+- an ANN index chosen on behalf of every deployment;
+- a reranker.
+
+Those concerns can be added through adapters or later evaluated extensions without weakening the core trust boundaries.
+
+## Releases
+
+Perseo RAG follows semantic versioning from `1.0.0`. Tagged releases are published through the repository release workflow after the full quality suite passes.
 
 ## Repository boundaries
 
-This repository contains the reusable core only.
-
-It intentionally does **not** contain:
-
-- production credentials or secrets;
-- private customer data;
-- deployment-specific hostnames, ports or network topology;
-- application-specific source adapters;
-- production infrastructure manifests;
-- private operational runbooks.
-
-Synthetic fixtures will be used for examples and tests.
+This repository contains the reusable core and synthetic test fixtures only. It does not contain production credentials, private datasets, customer-specific adapters, private infrastructure or operational runbooks.
 
 ## License
 
