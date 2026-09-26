@@ -39,10 +39,28 @@ def validate_vectors(
     return tuple(validated)
 
 
-def embed_query(provider: EmbeddingProvider, query: str) -> tuple[float, ...]:
+def embed_documents(
+    provider: EmbeddingProvider,
+    texts: Sequence[str],
+) -> tuple[tuple[float, ...], ...]:
+    """Embed indexed documents, preferring a retrieval-aware provider method."""
     validate_provider(provider)
+    method = getattr(provider, "embed_documents", None)
+    raw = method(texts) if callable(method) else provider.embed(texts)
+    return validate_vectors(
+        raw,
+        expected_count=len(texts),
+        dimensions=provider.dimensions,
+    )
+
+
+def embed_query(provider: EmbeddingProvider, query: str) -> tuple[float, ...]:
+    """Embed a search query, preferring a retrieval-aware provider method."""
+    validate_provider(provider)
+    method = getattr(provider, "embed_query", None)
+    raw = [method(query)] if callable(method) else provider.embed([query])
     vectors = validate_vectors(
-        provider.embed([query]),
+        raw,
         expected_count=1,
         dimensions=provider.dimensions,
     )

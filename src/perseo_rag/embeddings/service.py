@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from perseo_rag.embeddings.models import EmbeddingIndexResult
 from perseo_rag.embeddings.provider import EmbeddingProvider
 from perseo_rag.embeddings.repository import SqlAlchemyEmbeddingRepository
-from perseo_rag.embeddings.validation import validate_provider, validate_vectors
+from perseo_rag.embeddings.validation import embed_documents, validate_provider
 from perseo_rag.security import ScopeContext, scoped_session
 
 
@@ -31,10 +31,9 @@ class EmbeddingService:
             repository = SqlAlchemyEmbeddingRepository(session, scope.id)
 
             while chunks := repository.pending_chunks(provider.key, self._batch_size):
-                vectors = validate_vectors(
-                    provider.embed([chunk.content for chunk in chunks]),
-                    expected_count=len(chunks),
-                    dimensions=provider.dimensions,
+                vectors = embed_documents(
+                    provider,
+                    [chunk.content for chunk in chunks],
                 )
                 repository.add_embeddings(
                     provider.key,

@@ -45,7 +45,7 @@ Every new source state creates an immutable version. A separate document head se
 Documents, metadata, lexical indexes and vectors live in PostgreSQL. The system does not require a proprietary vector database.
 
 **Replaceable providers**  
-Embedding and generation providers are protocols owned by the core. Provider SDKs and deployment-specific adapters stay outside the domain model.
+Embedding and generation providers are protocols owned by the core. Provider SDKs and deployment-specific adapters stay outside the domain model. Retrieval-aware embedding adapters may expose separate document and query methods while legacy `embed()` providers remain supported.
 
 **No implicit network access**  
 The core accepts normalized data and does not fetch arbitrary URLs on behalf of callers.
@@ -125,9 +125,9 @@ PostgreSQL full-text search uses a generated `tsvector` column, a GIN index, `we
 
 ### Dense
 
-Embeddings are stored separately from chunks and keyed by scope, chunk and provider identity. Dense retrieval uses cosine distance and requires matching provider identity and dimensionality.
+Embeddings are stored separately from chunks and keyed by scope, chunk and provider identity. Dense retrieval uses cosine distance and requires matching provider identity and dimensionality. Retrieval-aware providers can embed indexed documents with `embed_documents()` and search text with `embed_query()`, allowing asymmetric retrieval without changing the storage contract.
 
-Version 1.0 uses exact vector search. ANN index selection is intentionally left to deployment-specific optimization because provider dimensionality and corpus size are not core invariants.
+Version 1.1 uses exact vector search. ANN index selection is intentionally left to deployment-specific optimization because provider dimensionality and corpus size are not core invariants.
 
 ### Hybrid
 
@@ -215,7 +215,7 @@ An answered result must cite at least one evidence item from the active context.
 
 ## Provider contracts and resilience
 
-The core defines protocols for embedding and generation providers. Concrete adapters own transport-specific serialization and translate external failures into the shared error taxonomy.
+The core defines protocols for embedding and generation providers. Concrete adapters own transport-specific serialization and translate external failures into the shared error taxonomy. Embedding adapters can optionally distinguish document and query encoding; providers that only implement the original `embed()` contract continue to work unchanged.
 
 Transient timeout, unavailability and rate-limit errors can use bounded exponential backoff. Protocol errors are not retried automatically.
 
@@ -331,7 +331,9 @@ Those concerns can be added through adapters or later evaluated extensions witho
 
 ## Releases
 
-Latest stable release: [v1.0.0](https://github.com/giovannimanetti11/perseo-rag/releases/tag/v1.0.0).
+Latest stable release: [v1.1.0](https://github.com/giovannimanetti11/perseo-rag/releases/tag/v1.1.0).
+
+Version 1.1 adds backward-compatible retrieval-aware embedding hooks for asymmetric document/query encoding.
 
 Perseo RAG follows semantic versioning from `1.0.0`. Tagged releases are published through the repository release workflow only after migrations, formatting, linting, type checks, tests and package build complete successfully.
 
