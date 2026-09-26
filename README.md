@@ -11,7 +11,7 @@
 
 Perseo RAG is a reusable retrieval and grounding service for applications that need traceable question answering over private or shared document collections. The core is deliberately independent from source systems, model runtimes and product-specific authorization models.
 
-Version 1.0 establishes the first stable release line.
+Version 1.0.0 is the first stable release of the project.
 
 ## What it provides
 
@@ -331,7 +331,9 @@ Those concerns can be added through adapters or later evaluated extensions witho
 
 ## Releases
 
-Perseo RAG follows semantic versioning from `1.0.0`. Tagged releases are published through the repository release workflow after the full quality suite passes.
+Latest stable release: [v1.0.0](https://github.com/giovannimanetti11/perseo-rag/releases/tag/v1.0.0).
+
+Perseo RAG follows semantic versioning from `1.0.0`. Tagged releases are published through the repository release workflow only after migrations, formatting, linting, type checks, tests and package build complete successfully.
 
 ## Repository boundaries
 
